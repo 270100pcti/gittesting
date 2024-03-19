@@ -98,7 +98,6 @@ def main():
         Cube()
         pygame.display.flip()
         pygame.time.wait(10)
-print("hello")
 
 main()
 
