@@ -78,6 +78,7 @@ def main():
     pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
 
     gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
+
     
     glTranslatef(0.0,0.0, -5)
 
@@ -95,6 +96,7 @@ def main():
         if keyboard.is_pressed("s") == True:
             glRotatef(1, 0, 0, -1)
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+        glClearColor(1.0,1.0,1.0,1.0)
         Cube()
         pygame.display.flip()
         pygame.time.wait(10)
