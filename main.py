@@ -1,103 +1,155 @@
+import os
+import time
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
-import keyboard
-from pygame.locals import *
+from pygame import gfxdraw
 
-from OpenGL.GL import *
-from OpenGL.GLU import *
+pygame.init()
 
-verticies = (
-    (1, -1, -1),
-    (1, 1, -1),
-    (-1, 1, -1),
-    (-1, -1, -1),
-    (1, -1, 1),
-    (1, 1, 1),
-    (-1, -1, 1),
-    (-1, 1, 1)
-    )
+class Screen():
+    w = 1000
+    h = 800
+    x = 0
+    y = 0
+    posx = 0
+    lastTick = 0
+    background = (0,0,0)
 
-edges = (
-    (0,1),
-    (0,3),
-    (0,4),
-    (2,1),
-    (2,3),
-    (2,7),
-    (6,3),
-    (6,4),
-    (6,7),
-    (5,1),
-    (5,4),
-    (5,7)
-    )
+screen = Screen()
 
-surfaces = (
-    (0,1,2,3),
-    (3,2,7,6),
-    (6,7,5,4),
-    (4,5,1,0),
-    (1,5,7,2),
-    (4,0,3,6)
-    )
+window = pygame.display.set_mode((screen.w,screen.h))
 
-colors = (
-    (1,0,0),
-    (1,0,0),
-    (1,0,0),
-    (1,1,0),
-    (1,1,1),
-    (1,1,1),
-    (1,0,0),
-    (0,1,0),
-    (0,0,1),
-    (1,0,0),
-    (1,1,1),
-    (0,1,1),
-    )
+run = True
 
-def Cube():
-    glBegin(GL_QUADS)
-    for surface in surfaces:
-        x = 0
-        for vertex in surface:
-            x+=1
-            glColor3fv(colors[x])
-            glVertex3fv(verticies[vertex])
-    glEnd()
+DrawBuffer = []
 
-    glBegin(GL_LINES)
-    for edge in edges:
-        for vertex in edge:
-            glVertex3fv(verticies[vertex])
-    glEnd()
+class Rectangle():
+    x = 0
+    y = 0
+    w = 0
+    h = 0
+    color = (0,0,0)
 
+    def __init__(self,x,y,w,h,color=(0,0,0)):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.color = color
+        DrawBuffer.insert(len(DrawBuffer),self)
 
-def main():
-    pygame.init()
-    display = (800,600)
-    pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
+class Image():
+    x = 0
+    y = 0
+    w = 0
+    h = 0
+    rotation = 0
+    image = None
 
-    gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
+    def __init__(self,x,y,image,w=None,h=None,rotation=0):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.image = image
+        self.rotation = rotation
+        DrawBuffer.insert(len(DrawBuffer),self)
     
-    glTranslatef(0.0,0.0, -5)
 
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-        if keyboard.is_pressed("a") == True:
-            glRotatef(-1, 0, 1, 0)
-        if keyboard.is_pressed("d") == True:
-            glRotatef(1, 0, 1, 0)
-        if keyboard.is_pressed("w") == True:
-            glRotatef(1, 0, 0, 1)
-        if keyboard.is_pressed("s") == True:
-            glRotatef(1, 0, 0, -1)
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-        Cube()
-        pygame.display.flip()
-        pygame.time.wait(10)
+class Circle():
+    x = 0
+    y = 0
+    r = 0
+    color = (0,0,0)
+    def __init__(self,x,y,r,color=color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.r = r
+        DrawBuffer.insert(len(DrawBuffer),self)
 
-main()
+class Player():
+    x = 0
+    y = 0
+    team = 0
+    heading = 0
 
+    gun = None
+    main = Circle(x,y,30,(0,0,0))
+    def __init__(self,x,y,team,heading=0):
+        self.x = x
+        self.y = y
+        self.team = team
+        self.heading = heading
+
+        TeamColor = (255,0,0)
+        if team == 1:
+            TeamColor = (0,0,255)
+        
+        self.main.color = TeamColor
+        print(self.main)
+    def __setattr__(self, __name: str, __value):
+        if self.main != None:
+            if __name == "x":
+                self.main.x = __value
+            elif __name == "y":
+                self.main.y = __value
+        
+
+def Draw():
+    window.fill(screen.background)
+    for shape in DrawBuffer:
+        if type(shape) == Rectangle:
+            DrawRect = pygame.Rect(shape.x+screen.x,shape.y+screen.y,shape.w,shape.h)
+            pygame.draw.rect(window,shape.color,DrawRect)
+        elif type(shape) == Image:
+            RenderedImage = shape.image
+            if shape.w != None and shape.h != None:
+                RenderedImage = pygame.transform.scale(shape.image,(shape.w,shape.h))
+            else:
+                RenderedImage = shape.image
+            if shape.rotation != 0:
+                RenderedImage = pygame.transform.rotate(RenderedImage,shape.rotation).convert_alpha()
+            window.blit(RenderedImage,(shape.x+screen.x,shape.y+screen.y))
+        elif type(shape) == Circle:
+            gfxdraw.aacircle(window,shape.x+screen.x,shape.y+screen.y,shape.r,shape.color)
+            gfxdraw.filled_circle(window,shape.x+screen.x,shape.y+screen.y,shape.r,shape.color)
+    pygame.display.flip()
+
+Background = Image(0,0,pygame.image.load("media/floortiles.png"),w=5000,h=5000)
+
+
+
+# Map
+
+Map_Top = Rectangle(55*3,112*3,403*3,38*3,color=(0,0,0))
+Map_Bottom = Rectangle(55*3,337*3,403*3,38*3,color=(0,0,0))
+Map_Right = Rectangle(422*3,112*3,36*3,263*3,color=(0,0,0))
+Map_Left = Rectangle(55*3,112*3,36*3,263*3,color=(0,0,0))
+
+#end map
+
+
+screen.background = (255,0,0)
+
+screen.lastTick = time.time()
+Crosshair = Image(0,0,pygame.image.load("media/crosshair.png"),w=50,h=50)
+
+DefaultPlayer = Player(350,350,0,heading=0)
+
+
+
+def Tick():
+    x,y = pygame.mouse.get_pos()
+    Crosshair.x = x-25
+    Crosshair.y = y-25
+
+while run:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+    
+    Tick()
+    Draw()
+
+pygame.quit()
